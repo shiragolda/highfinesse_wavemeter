@@ -2,13 +2,15 @@
 import os
 #os.chdir("C:\\Users\\labuser\\gdrive\\code\\highfinesse_wavemeter")
 
+
 if __name__=='__main__':
     os.chdir("/home/labuser/Insync/electric.atoms@gmail.com/Google Drive/code/highfinesse_wavemeter")
 
 import zmq
 import time
 from zmq_publisher import zmqPublisher
-
+from wavemeter_handler import wmHandler
+import threading
 
 """
 
@@ -55,14 +57,30 @@ ResERR_TriggerWaiting = -19
 ResERR_NoLegitimation = -20
 
 """
+
+def start_handler():
+    handler = wmHandler()
+
 class WM:
     
     
-    def __init__(self,control_port=9000,publish=False,stream_port=5563):
+    def __init__(self,control_port=9000,publish=False,stream_port=5563,auto_adjust_on_startup=False):
 
 
         self.port = control_port #zmq port for handling wavemeter requests
         self.publish = publish
+        self.auto_adjust_on_startup=auto_adjust_on_startup
+
+
+        try:
+            handler = threading.Thread(target=start_handler)
+            handler.start()
+        
+            #print("Starting handler")
+        except Exception as e:
+            print("Unknown error starting handler")
+            print(e)
+            
 
         zmq_context = zmq.Context()
         self.socket = zmq_context.socket(zmq.REQ)
@@ -72,9 +90,10 @@ class WM:
         if publish:
             self.publisher = zmqPublisher(port=stream_port,topic='wavemeter')
 
-        print("Auto-adjusting exposure times for optimal wavemeter performance")
-        self.auto_adjust()
-        print("Finished auto-adjusting")
+        if self.auto_adjust_on_startup:
+            print("Auto-adjusting exposure times for optimal wavemeter performance")
+            self.auto_adjust()
+            print("Finished auto-adjusting")
 
     def ask(self,message):
         """ Send request to zmq server to pass message to wavemeter client """
@@ -146,13 +165,25 @@ class WM:
         
         Exposure times are in ms
         """
+        adjust=False
         power = self.read_laser_power(channel)
-        if power <=0:
+        
+        if power>0:
+            adjust=True
+            
+        else:
             self.set_exposure_mode(channel,auto=False)
             self.set_exposure(channel,1,arr=1)
             self.set_exposure(channel,1,arr=2)
-            print("Channel %i: Low signal, exposure set to %i and %i"%(channel,self.read_exposure(channel,1),self.read_exposure(channel,2)))
-        else:
+            
+            if power==-4000.0: #overexposed
+                adjust=True
+                print("Channel %i: High signal")
+
+            else:
+                print("Channel %i: Low signal, exposure set to %i and %i"%(channel,self.read_exposure(channel,1),self.read_exposure(channel,2)))
+        
+        if adjust:
             self.set_exposure_mode(channel,auto=True)
             time.sleep(5)
             self.set_exposure_mode(channel,auto=False)
@@ -239,6 +270,10 @@ class WM:
     @property
     def frequencies(self):
         return [self.read_frequency(i+1) for i in range(8)]
+        
+    @property
+    def powers(self):
+        return [self.read_laser_power(i+1) for i in range(8)]
 ##
 if __name__=='__main__':
     wm = WM(publish=True)
