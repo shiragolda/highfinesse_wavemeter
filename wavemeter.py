@@ -1,11 +1,5 @@
 
 import os
-#os.chdir("C:\\Users\\labuser\\gdrive\\code\\highfinesse_wavemeter")
-
-
-if __name__=='__main__':
-    os.chdir("/home/labuser/Insync/electric.atoms@gmail.com/Google Drive/code/highfinesse_wavemeter")
-
 import zmq
 import time
 from zmq_publisher import zmqPublisher
@@ -72,19 +66,20 @@ class WM:
         self.auto_adjust_on_startup=auto_adjust_on_startup
 
 
-        try:
-            handler = threading.Thread(target=start_handler)
-            handler.start()
-        
-            #print("Starting handler")
-        except Exception as e:
-            print("Unknown error starting handler")
-            print(e)
+        #   try:
+        #     handler = threading.Thread(target=start_handler)
+        #     handler.start()
+        # 
+        #     #print("Starting handler")
+        # except Exception as e:
+        #     print("Unknown error starting handler")
+        #     print(e)
             
 
         zmq_context = zmq.Context()
         self.socket = zmq_context.socket(zmq.REQ)
-        self.socket.connect("tcp://192.168.0.110:%s"%self.port)
+        self.socket.connect("tcp://192.168.0.103:%s"%self.port)
+        print("Connected to handler at 192.168.0.103:%s"%self.port)
         
     
         if publish:
@@ -124,10 +119,12 @@ class WM:
         Display a constant stream of frequency readings for selected channels. 
         If publishing is on, publish values to zmq port. 
         """
+        
         go = True
         while go:
             for i in channels:
                 try:
+                    print("Test")
                     new_data = self.read_frequency(i)
                     if self.publish:
                         self.publisher.publish_data((i,round(new_data,6)),prnt=True)
