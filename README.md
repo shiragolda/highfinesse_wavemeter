@@ -1,12 +1,14 @@
 # highfinesse_wavemeter
 Python code to interface with HighFinesse WS8 wavemeter with support for server-client configuration for Linux
 
-This code requires a Windows computer running the HighFinesse software. 
+This code requires a Windows computer running the HighFinesse software with the wavemeter connected.  
 
-For use in server-client configuration, the Windows server computer must also be running wlmDataServer.exe (supplied by HighFinesse). 
-The linux client must have the wlmData.so library installed (supplied by HighFinesse). 
+To allow multiple computers to connect to the wavemeter simultaneously, a zmq socket is used to handle requests on a server computer running wavemeter_handler.py. 
 
-To allow multiple computers to connect to the wavemeter simultaneously, a zmq socket is used to handle requests. 
+If the server computer is NOT the same computer that is running the HighFinesse software:
+  - the wavemeter computer must be running wlmDataServer.exe (supplied by HighFinesse). 
+  - the server computer must have the wlmData.dll library installed (Windows) or wlmData.so library installed (Linux). These libraries are supplied by HighFinesse. 
+
 
 
 # Requirements
